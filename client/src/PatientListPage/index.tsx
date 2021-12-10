@@ -4,12 +4,16 @@ import { Container, Table, Button } from "semantic-ui-react";
 
 import { PatientFormValues } from "../AddPatientModal/AddPatientForm";
 import AddPatientModal from "../AddPatientModal";
-import { Patient } from "../types";
+import { Patient, Diagnosis } from "../types";
 import { apiBaseUrl } from "../constants";
 import HealthRatingBar from "../components/HealthRatingBar";
 import { useStateValue } from "../state";
 
+import { useHistory } from "react-router-dom";
+
 const PatientListPage = () => {
+  const history = useHistory();
+
   const [{ patients }, dispatch] = useStateValue();
 
   const [modalOpen, setModalOpen] = React.useState<boolean>(false);
@@ -30,10 +34,37 @@ const PatientListPage = () => {
       );
       dispatch({ type: "ADD_PATIENT", payload: newPatient });
       closeModal();
-    } catch (e : any) {
-        console.error(e.response?.data|| 'Unknown Error');
-        setError(e.response?.data?.error || 'Unknown error');
+    } catch (e: any) {
+      console.error(e.response?.data || "Unknown Error");
+      setError(e.response?.data?.error || "Unknown error");
     }
+  };
+
+  const getPatient = async (id: string) => {
+    try {
+      const { data: patient } = await axios.get<Patient>(
+        `${apiBaseUrl}/patients/${id}`
+      );
+      dispatch({ type: "VIEW_PATIENT", payload: patient });
+      console.log(patient);
+      await getDiagnosis(id);
+    } catch (e: any) {
+      console.error(e.response?.data || "Unknown Error");
+    }
+
+  };
+  const getDiagnosis = async (id: string) => {
+    try {
+      const { data: diagnosis } = await axios.get<Diagnosis[]>(
+        `${apiBaseUrl}/diagnoses`
+      );
+      dispatch({ type: "ALL_DIAGNOSIS", payload: diagnosis });
+      console.log(diagnosis);
+      history.push(`/patient/${id}`);
+    } catch (e: any) {
+      console.error(e.response?.data || "Unknown Error");
+    }
+
   };
 
   return (
@@ -52,7 +83,7 @@ const PatientListPage = () => {
         </Table.Header>
         <Table.Body>
           {Object.values(patients).map((patient: Patient) => (
-            <Table.Row key={patient.id}>
+            <Table.Row onClick={() => getPatient(patient.id)} key={patient.id}>
               <Table.Cell>{patient.name}</Table.Cell>
               <Table.Cell>{patient.gender}</Table.Cell>
               <Table.Cell>{patient.occupation}</Table.Cell>
